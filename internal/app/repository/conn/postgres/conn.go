@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/haradoxf-cloud/catalog-service/migration"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/migrate"
 
 	"github.com/haradoxf-cloud/catalog-service/internal/app/config/section"
+	"github.com/haradoxf-cloud/catalog-service/migration"
 )
 
 type (
