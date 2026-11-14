@@ -44,18 +44,22 @@ func NewClient(ctx context.Context, cfg section.RepositoryPostgres) (*Client, er
 	u.RawQuery = args.Encode()
 	dsn := u.String()
 
-	sqlDB := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+	sqlDB := sql.OpenDB(pgdriver.NewConnector(
+		pgdriver.WithDSN(dsn),
+		pgdriver.WithReadTimeout(cfg.ReadTimeout),
+		pgdriver.WithWriteTimeout(cfg.WriteTimeout),
+	))
 	sqlDB.SetMaxOpenConns(10)
 
-	bunDB := bun.NewDB(sqlDB, pgdialect.New())
+	bunDB := bun.NewDB(sqlDB, pgdialect.New(), bun.WithDiscardUnknownColumns())
 
 	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	if err := sqlDB.PingContext(pingCtx); err != nil {
-		return nil, fmt.Errorf("база не отвечает: %w", err)
+		return nil, fmt.Errorf("database is not responding: %w", err)
 	}
 
-	log.Println("Успешно подключились к PSQL!")
+	log.Println("Successfully connected to PostgreSQL!")
 
 	return &Client{_bunDB: bunDB, rawBunDB: bunDB, cfg: cfg}, nil
 }
@@ -75,15 +79,15 @@ func (c *Client) Migrate(ctx context.Context) (oldVer, newVer int64, err error) 
 	}
 	m := migrate.NewMigrator(c.rawBunDB, migrations, opts...)
 
-	// 3. Инициализируем таблицу миграций (если её нет)
+	// 3. Инициализируем таблицу миграций
 	if err = m.Init(ctx); err != nil {
-		return 0, 0, fmt.Errorf("failed to discover migrations: %w", err)
+		return 0, 0, fmt.Errorf("failed to init migrations table: %w", err)
 	}
 
-	// 4. Получаем старую версию (ДО применения)
+	// 4. Получаем старую версию
 	applied, err := m.AppliedMigrations(ctx)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to discover migrations: %w", err)
+		return 0, 0, fmt.Errorf("failed to get applied migrations: %w", err)
 	}
 	for _, mg := range applied {
 		v, _ := strconv.ParseInt(mg.Name, 10, 64)
@@ -95,7 +99,7 @@ func (c *Client) Migrate(ctx context.Context) (oldVer, newVer int64, err error) 
 	// 5. Применяем новые миграции
 	group, err := m.Migrate(ctx)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to discover migrations: %w", err)
+		return 0, 0, fmt.Errorf("failed to apply migrations: %w", err)
 	}
 
 	// 6. Вычисляем новую версию
