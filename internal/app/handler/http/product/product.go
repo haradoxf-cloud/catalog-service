@@ -2,6 +2,7 @@ package hproduct
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/gofrs/uuid"
@@ -64,6 +65,10 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 		httph.HandleError(w, entity.ErrIncorrectParameters)
 		return
 	}
+	if err := req.Validate(); err != nil {
+		httph.HandleError(w, err)
+		return
+	}
 
 	product, err := h.srv.Update(r.Context(), guid, req)
 	if err != nil {
@@ -102,10 +107,11 @@ func (h *handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) List(w http.ResponseWriter, r *http.Request) {
 	var req entity.RequestProductList
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && err != io.EOF {
 		httph.HandleError(w, entity.ErrIncorrectParameters)
 		return
 	}
+
 	products, err := h.srv.List(r.Context(), req)
 	if err != nil {
 		httph.HandleError(w, err)

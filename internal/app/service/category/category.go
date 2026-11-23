@@ -59,8 +59,11 @@ func (s *srv) Update(ctx context.Context, guid uuid.UUID, req entity.RequestCate
 	if len(existing) == 0 {
 		return entity.Category{}, entity.ErrNotFound
 	}
+
 	category := existing[0]
+
 	if req.Name != "" {
+
 		found, err := s.repoCategory.List(ctx, &req.Name)
 		if err != nil {
 			return entity.Category{}, err
@@ -70,7 +73,16 @@ func (s *srv) Update(ctx context.Context, guid uuid.UUID, req entity.RequestCate
 				return entity.Category{}, entity.ErrAlreadyExists
 			}
 		}
+
+		category.Name = req.Name
 	}
+
+	category.UpdatedAt = time.Now()
+
+	if err := s.repoCategory.Update(ctx, category); err != nil {
+		return entity.Category{}, err
+	}
+
 	return category, nil
 }
 
