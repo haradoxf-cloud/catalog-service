@@ -22,27 +22,11 @@ type Category struct {
 ////////////////////////////////////////////////////////////////////////////////
 
 type RequestCategoryCreate struct {
-	Name string `json:"name"`
+	Name string `json:"name" binding:"required,min=2,max=255"`
 }
-
-func (r RequestCategoryCreate) Validate() error {
-	if r.Name == "" {
-		return ErrIncorrectParameters
-	}
-	return nil
-}
-
 type RequestCategoryUpdate struct {
-	Name string `json:"name"`
+	Name string `json:"name" binding:"omitempty,min=2,max=255"`
 }
-
-func (r RequestCategoryUpdate) Validate() error {
-	if r.Name != "" && len(r.Name) < 2 {
-		return ErrIncorrectParameters
-	}
-	return nil
-}
-
 type ResponseCategoryCreate struct {
 	GUID      uuid.UUID `json:"guid"`
 	Name      string    `json:"name"`
