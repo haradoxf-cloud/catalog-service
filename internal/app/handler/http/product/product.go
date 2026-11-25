@@ -97,9 +97,11 @@ func (h *handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) List(w http.ResponseWriter, r *http.Request) {
 	var req entity.RequestProductList
-	if err := binding.ScanAndValidateJSON(r, &req); err != nil {
-		httph.HandleError(w, err)
-		return
+	if r.ContentLength != 0 {
+		if err := binding.ScanAndValidateJSON(r, &req); err != nil {
+			httph.HandleError(w, err)
+			return
+		}
 	}
 
 	products, err := h.srv.List(r.Context(), req)
